@@ -42,12 +42,10 @@ def runner(cmd, cwd, stdout_path, stderr_path, timeout, **kwargs):
 @click.option('-m', '--map_path', default=None, help='ORB_SLAM3 *.osa map atlas file')
 @click.option('--orb_slam3_dir', default=None, help='Path to ORB_SLAM3 directory (default: ../orb_slam3_code)')
 @click.option('--setting_file', default=None, help='Path to setting YAML file (default: gopro13_maxlens_fisheye_setting.yaml)')
-@click.option('-n', '--num_workers', type=int, default=None, help='Number of parallel workers (default: CPU count)')
+@click.option('-n', '--num_workers', type=int, default=None)
 @click.option('-ml', '--max_lost_frames', type=int, default=60)
 @click.option('-tm', '--timeout_multiple', type=float, default=16, help='timeout_multiple * duration = timeout')
-@click.option('--slam_threads', type=int, default=None, help='Number of threads per SLAM process (default: 4)')
-@click.option('--use_processes', is_flag=True, default=False, help='Use ProcessPoolExecutor instead of ThreadPoolExecutor (better for CPU-intensive tasks)')
-def main(input_dir, map_path, orb_slam3_dir, setting_file, num_workers, max_lost_frames, timeout_multiple, slam_threads, use_processes):
+def main(input_dir, map_path, orb_slam3_dir, setting_file, num_workers, max_lost_frames, timeout_multiple):
     input_dir = pathlib.Path(os.path.expanduser(input_dir)).absolute()
     input_video_dirs = [x.parent for x in input_dir.glob('demo*/raw_video.mp4')]
     input_video_dirs += [x.parent for x in input_dir.glob('map*/raw_video.mp4')]
@@ -57,23 +55,10 @@ def main(input_dir, map_path, orb_slam3_dir, setting_file, num_workers, max_lost
         map_path = input_dir.joinpath('mapping', 'map_atlas.osa')
     else:
         map_path = pathlib.Path(os.path.expanduser(map_path)).absolute()
-    assert map_path.is_file(), f"Map file not found: {map_path}"
+    assert map_path.is_file()
 
     if num_workers is None:
-        # Use all CPU cores by default for better performance
-        num_workers = multiprocessing.cpu_count()
-    
-    if slam_threads is None:
-        # Default threads per SLAM process
-        slam_threads = 4
-    
-    print(f"Using {num_workers} parallel workers")
-    print(f"Each SLAM process will use {slam_threads} threads")
-    print(f"Total video directories to process: {len(input_video_dirs)}")
-    
-    # Count videos that need processing
-    videos_to_process = [d for d in input_video_dirs if not d.joinpath('camera_trajectory.csv').is_file()]
-    print(f"Videos that need processing: {len(videos_to_process)}")
+        num_workers = multiprocessing.cpu_count() // 2
 
     # Setup ORB_SLAM3 paths
     if orb_slam3_dir is None:
@@ -87,7 +72,7 @@ def main(input_dir, map_path, orb_slam3_dir, setting_file, num_workers, max_lost
     vocabulary_path = orb_slam3_dir.joinpath('Vocabulary', 'ORBvoc.txt')
     
     if setting_file is None:
-        setting_file = orb_slam3_dir.joinpath('Examples', 'Monocular-Inertial', 'gopro13_maxlens_fisheye_setting.yaml')
+        setting_file = orb_slam3_dir.joinpath('Examples', 'Monocular-Inertial', 'gopro13_maxlens_fisheye_setting_960x840.yaml')
     else:
         setting_file = pathlib.Path(os.path.expanduser(setting_file)).absolute()
     
@@ -95,16 +80,9 @@ def main(input_dir, map_path, orb_slam3_dir, setting_file, num_workers, max_lost
     assert vocabulary_path.is_file(), f"Vocabulary file not found: {vocabulary_path}"
     assert setting_file.is_file(), f"Setting file not found: {setting_file}"
 
-    # Note: Even with ThreadPoolExecutor, subprocess.run() will spawn separate processes
-    # You should see multiple 'gopro_slam' processes in htop, not Python processes
-    # To see threads in htop, press 'H' key to toggle thread view
     with tqdm(total=len(input_video_dirs)) as pbar:
-        # Use ProcessPoolExecutor for CPU-intensive tasks, ThreadPoolExecutor for I/O-bound tasks
-        executor_class = concurrent.futures.ProcessPoolExecutor if use_processes else concurrent.futures.ThreadPoolExecutor
-        executor_name = "ProcessPoolExecutor" if use_processes else "ThreadPoolExecutor"
-        print(f"Using {executor_name} with {num_workers} workers")
-        print("Note: Check for 'gopro_slam' processes in htop (not Python processes)")
-        with executor_class(max_workers=num_workers) as executor:
+        # one chunk per thread, therefore no synchronization needed
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
             futures = set()
             for video_dir in tqdm(input_video_dirs):
                 video_dir = video_dir.absolute()
@@ -140,8 +118,7 @@ def main(input_dir, map_path, orb_slam3_dir, setting_file, num_workers, max_lost
                     '--output_trajectory_csv', str(csv_path),
                     '--load_map', str(map_path),
                     '--mask_img', str(mask_path),
-                    '--max_lost_frames', str(max_lost_frames),
-                    '--num_threads', str(slam_threads)
+                    '--max_lost_frames', str(max_lost_frames)
                 ]
 
                 stdout_path = video_dir.joinpath('slam_stdout.txt')
@@ -153,10 +130,9 @@ def main(input_dir, map_path, orb_slam3_dir, setting_file, num_workers, max_lost
                         return_when=concurrent.futures.FIRST_COMPLETED)
                     pbar.update(len(completed))
 
-                future = executor.submit(runner,
-                    cmd, str(video_dir), stdout_path, stderr_path, timeout)
-                futures.add(future)
-                print(f"Submitted task for {video_dir.name} (total active: {len(futures)})")
+                futures.add(executor.submit(runner,
+                    cmd, str(video_dir), stdout_path, stderr_path, timeout))
+                # print(' '.join(cmd))
 
             completed, futures = concurrent.futures.wait(futures)
             pbar.update(len(completed))
@@ -167,4 +143,3 @@ def main(input_dir, map_path, orb_slam3_dir, setting_file, num_workers, max_lost
 # %%
 if __name__ == "__main__":
     main()
-

@@ -37,7 +37,14 @@ def main(input_dir, camera_intrinsics, aruco_yaml, num_workers):
     if num_workers is None:
         num_workers = multiprocessing.cpu_count()
 
+    print(f"Using {num_workers} parallel workers for processing multiple videos")
+    print("Note: Each video will use OpenCV's internal threading for frame processing")
+
     script_path = pathlib.Path(__file__).parent.parent.joinpath('scripts', 'detect_aruco.py')
+
+    # Calculate workers per video (for OpenCV threading)
+    # If processing many videos in parallel, use fewer threads per video
+    workers_per_video = max(1, multiprocessing.cpu_count() // num_workers)
 
     with tqdm(total=len(input_video_dirs)) as pbar:
         # one chunk per thread, therefore no synchronization needed
@@ -51,14 +58,14 @@ def main(input_dir, camera_intrinsics, aruco_yaml, num_workers):
                     print(f"tag_detection.pkl already exists, skipping {video_dir.name}")
                     continue
 
-                # run SLAM
+                # run detect_aruco
                 cmd = [
                     'python', script_path,
                     '--input', str(video_path),
                     '--output', str(pkl_path),
                     '--intrinsics_json', camera_intrinsics,
                     '--aruco_yaml', aruco_yaml,
-                    '--num_workers', '1'
+                    '--num_workers', str(workers_per_video)
                 ]
 
                 if len(futures) >= num_workers:

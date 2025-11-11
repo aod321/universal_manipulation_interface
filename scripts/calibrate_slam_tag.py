@@ -77,7 +77,7 @@ def main(tag_detection, csv_trajectory, output, tag_id, keyframe_only):
         # filter tag location in image
         corners = tag['corners']
         tag_center_pix = corners.mean(axis=0)
-        img_center = np.array([2704, 2028], dtype=np.float32) / 2
+        img_center = np.array([3840, 3360], dtype=np.float32) / 2
         dist_to_center = np.linalg.norm(tag_center_pix - img_center) / img_center[1]
         if dist_to_center > 0.6:
             continue

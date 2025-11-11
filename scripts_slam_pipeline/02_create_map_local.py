@@ -103,4 +103,3 @@ def main(input_dir, map_path, orb_slam3_dir, setting_file, no_mask):
 # %%
 if __name__ == "__main__":
     main()
-
