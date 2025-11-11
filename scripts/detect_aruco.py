@@ -49,8 +49,10 @@ def main(input, output, intrinsics_json, aruco_yaml, num_workers):
         in_stream.thread_count = num_workers
 
         in_res = np.array([in_stream.height, in_stream.width])[::-1]
+        print(f"input resolution: {in_res}, raw_fisheye_intr: {raw_fisheye_intr}")
         fisheye_intr = convert_fisheye_intrinsics_resolution(
             opencv_intr_dict=raw_fisheye_intr, target_resolution=in_res)
+        print(f"output fisheye_intr: {fisheye_intr}")
 
         for i, frame in tqdm(enumerate(in_container.decode(in_stream)), total=in_stream.frames):
             img = frame.to_ndarray(format='rgb24')

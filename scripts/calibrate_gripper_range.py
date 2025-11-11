@@ -13,8 +13,6 @@ import pickle
 import json
 import numpy as np
 from umi.common.cv_util import get_gripper_width
-
-
 # %%
 @click.command()
 @click.option('-i', '--input', required=True, help='Tag detection pkl')

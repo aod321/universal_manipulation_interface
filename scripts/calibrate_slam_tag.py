@@ -15,7 +15,6 @@ import pandas as pd
 from scipy.spatial.transform import Rotation
 from umi.common.pose_util import pose_to_mat
 from skfda.exploratory.stats import geometric_median
-
 # %%
 @click.command()
 @click.option('-d', '--tag_detection', required=True, help='Tag detection pkl path')

@@ -55,8 +55,10 @@ def main(session_dir, calibration_dir):
         assert script_path.is_file()
         demo_dir = session.joinpath('demos')
         mapping_dir = demo_dir.joinpath('mapping')
+        print("mapping_dir", mapping_dir)
         assert mapping_dir.is_dir()
         map_path = mapping_dir.joinpath('map_atlas.osa')
+        print("map_path", map_path)
         if not map_path.is_file():
             cmd = [
                 'python', str(script_path),
@@ -81,7 +83,7 @@ def main(session_dir, calibration_dir):
         print("############# 04_detect_aruco ###########")
         script_path = script_dir.joinpath("04_detect_aruco.py")
         assert script_path.is_file()
-        camera_intrinsics = calibration_dir.joinpath('gopro_intrinsics_2_7k.json')
+        camera_intrinsics = calibration_dir.joinpath('gopro_intrinsics_gopro13sn7674.json')
         aruco_config = calibration_dir.joinpath('aruco_config.yaml')
         assert camera_intrinsics.is_file()
         assert aruco_config.is_file()

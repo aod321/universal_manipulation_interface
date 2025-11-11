@@ -14,7 +14,8 @@ def timecode_to_seconds(
     # 29.97 -> 30, 59.94 -> 60
     int_frame_rate = round(frame_rate)
 
-    # parse timecode string
+    # parse timecode string - replace any semicolons with colons for proper parsing
+    timecode = timecode.replace(';', ':')
     h, m, s, f = [int(x) for x in timecode.split(':')]
 
     # calculate frames assuming whole frame rate (i.e. non-drop frame)
