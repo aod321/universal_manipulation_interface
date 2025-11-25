@@ -67,6 +67,7 @@ camera_idx
 defaultdict(<function main.<locals>.<lambda> at 0x7f471feb2310>, {})
 n_dropped_demos 0
 ````
+Optional arguments let you swap in new calibrations: `--slam_setting_file` mounts a host-side ORB-SLAM camera YAML into the Docker steps, `--camera_intrinsics` points to the JSON used for ArUco detection, and `--aruco_config` selects the marker configuration. These override the defaults found under `-c/--calibration_dir`.
 For this dataset, 99% of the data are useable (successful SLAM), with 0 demonstrations dropped. If your dataset has a low SLAM success rate, double check if you carefully followed our [data collection instruction](https://swanky-sphere-ad1.notion.site/UMI-Data-Collection-Instruction-4db1a1f0f2aa4a2e84d9742720428b4c). 
 
 Despite our significant effort on robustness improvement, OBR_SLAM3 is still the most fragile part of UMI pipeline. If you are an expert in SLAM, please consider contributing to our fork of [OBR_SLAM3](https://github.com/cheng-chi/ORB_SLAM3) which is specifically optimized for UMI workflow.

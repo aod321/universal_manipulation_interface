@@ -27,8 +27,9 @@ from umi.common.cv_util import draw_predefined_mask
 @click.option('-m', '--map_path', default=None, help='ORB_SLAM3 *.osa map atlas file')
 @click.option('-d', '--docker_image', default="chicheng/orb_slam3:latest")
 @click.option('-np', '--no_docker_pull', is_flag=True, default=False, help="pull docker image from docker hub")
+@click.option('--setting_file', default=None, help='Host path to ORB-SLAM3 camera setting YAML file')
 @click.option('-nm', '--no_mask', is_flag=True, default=False, help="Whether to mask out gripper and mirrors. Set if map is created with bare GoPro no on gripper.")
-def main(input_dir, map_path, docker_image, no_docker_pull, no_mask):
+def main(input_dir, map_path, docker_image, no_docker_pull, setting_file, no_mask):
     video_dir = pathlib.Path(os.path.expanduser(input_dir)).absolute()
     for fn in ['raw_video.mp4', 'imu_data.json']:
         assert video_dir.joinpath(fn).is_file()
@@ -67,6 +68,18 @@ def main(input_dir, map_path, docker_image, no_docker_pull, no_mask):
     map_mount_source = pathlib.Path(map_path)
     map_mount_target = pathlib.Path('/map').joinpath(map_mount_source.name)
 
+    default_setting_path = '/ORB_SLAM3/Examples/Monocular-Inertial/gopro10_maxlens_fisheye_setting_v1_720.yaml'
+    setting_volume_args = []
+    setting_path = default_setting_path
+    if setting_file is not None:
+        setting_file = pathlib.Path(os.path.expanduser(setting_file)).absolute()
+        assert setting_file.is_file(), f"Setting file not found: {setting_file}"
+        mount_target = pathlib.Path('/camera_settings')
+        setting_volume_args = [
+            '--volume', f"{setting_file.parent}:{mount_target}"
+        ]
+        setting_path = str(mount_target.joinpath(setting_file.name))
+
     # run SLAM
     cmd = [
         'docker',
@@ -74,15 +87,18 @@ def main(input_dir, map_path, docker_image, no_docker_pull, no_mask):
         '--rm', # delete after finish
         '--volume', str(video_dir) + ':' + '/data',
         '--volume', str(map_mount_source.parent) + ':' + str(map_mount_target.parent),
+    ]
+    cmd.extend(setting_volume_args)
+    cmd.extend([
         docker_image,
         '/ORB_SLAM3/Examples/Monocular-Inertial/gopro_slam',
         '--vocabulary', '/ORB_SLAM3/Vocabulary/ORBvoc.txt',
-        '--setting', '/ORB_SLAM3/Examples/Monocular-Inertial/gopro10_maxlens_fisheye_setting_v1_720.yaml',
+        '--setting', setting_path,
         '--input_video', str(video_path),
         '--input_imu_json', str(json_path),
         '--output_trajectory_csv', str(csv_path),
         '--save_map', str(map_mount_target)
-    ]
+    ])
     if not no_mask:
         cmd.extend([
             '--mask_img', str(mask_path)

@@ -7,6 +7,9 @@ sys.path.append(ROOT_DIR)
 os.chdir(ROOT_DIR)
 
 # %%
+import pathlib
+
+import av
 import click
 import numpy as np
 import pickle
@@ -30,9 +33,21 @@ def main(tag_detection, csv_trajectory, output, tag_id, keyframe_only):
     mapping run itself.
     """
 
+    tag_detection = pathlib.Path(os.path.expanduser(tag_detection)).absolute()
+    csv_trajectory = pathlib.Path(os.path.expanduser(csv_trajectory)).absolute()
+    output = pathlib.Path(os.path.expanduser(output)).absolute()
+
     # load
     df = pd.read_csv(csv_trajectory)
-    tag_detection_results = pickle.load(open(tag_detection, 'rb'))
+    tag_detection_results = pickle.load(tag_detection.open('rb'))
+
+    video_path = tag_detection.parent.joinpath('raw_video.mp4')
+    assert video_path.is_file(), f"raw_video.mp4 not found next to {tag_detection}"
+    with av.open(str(video_path)) as container:
+        stream = container.streams.video[0]
+        frame_width = stream.width
+        frame_height = stream.height
+    img_center = np.array([frame_width, frame_height], dtype=np.float32) / 2
 
     # filter pose
     is_valid = ~df['is_lost']
@@ -77,7 +92,6 @@ def main(tag_detection, csv_trajectory, output, tag_id, keyframe_only):
         # filter tag location in image
         corners = tag['corners']
         tag_center_pix = corners.mean(axis=0)
-        img_center = np.array([3840, 3360], dtype=np.float32) / 2
         dist_to_center = np.linalg.norm(tag_center_pix - img_center) / img_center[1]
         if dist_to_center > 0.6:
             continue

@@ -19,13 +19,34 @@ import subprocess
 @click.command()
 @click.argument('session_dir', nargs=-1)
 @click.option('-c', '--calibration_dir', type=str, default=None)
-def main(session_dir, calibration_dir):
+@click.option('--slam_setting_file', type=str, default=None, help='Path to custom ORB-SLAM camera setting YAML (host path)')
+@click.option('--camera_intrinsics', type=str, default=None, help='Path to camera intrinsics JSON file')
+@click.option('--aruco_config', type=str, default=None, help='Path to ArUco config YAML file')
+def main(session_dir, calibration_dir, slam_setting_file, camera_intrinsics, aruco_config):
     script_dir = pathlib.Path(__file__).parent.joinpath('scripts_slam_pipeline')
     if calibration_dir is None:
         calibration_dir = pathlib.Path(__file__).parent.joinpath('example', 'calibration')
     else:
         calibration_dir = pathlib.Path(calibration_dir)
     assert calibration_dir.is_dir()
+
+    slam_setting_path = None
+    if slam_setting_file is not None:
+        slam_setting_path = pathlib.Path(os.path.expanduser(slam_setting_file)).absolute()
+        assert slam_setting_path.is_file()
+
+    if camera_intrinsics is None:
+        camera_intrinsics_path = calibration_dir.joinpath('gopro_intrinsics_gopro13sn7674.json')
+    else:
+        camera_intrinsics_path = pathlib.Path(os.path.expanduser(camera_intrinsics)).absolute()
+
+    if aruco_config is None:
+        aruco_config_path = calibration_dir.joinpath('aruco_config.yaml')
+    else:
+        aruco_config_path = pathlib.Path(os.path.expanduser(aruco_config)).absolute()
+
+    assert camera_intrinsics_path.is_file()
+    assert aruco_config_path.is_file()
 
     for session in session_dir:
         session = pathlib.Path(os.path.expanduser(session)).absolute()
@@ -65,6 +86,10 @@ def main(session_dir, calibration_dir):
                 '--input_dir', str(mapping_dir),
                 '--map_path', str(map_path)
             ]
+            if slam_setting_path is not None:
+                cmd.extend([
+                    '--setting_file', str(slam_setting_path)
+                ])
             result = subprocess.run(cmd)
             assert result.returncode == 0
             assert map_path.is_file()
@@ -77,22 +102,22 @@ def main(session_dir, calibration_dir):
             '--input_dir', str(demo_dir),
             '--map_path', str(map_path)
         ]
+        if slam_setting_path is not None:
+            cmd.extend([
+                '--setting_file', str(slam_setting_path)
+            ])
         result = subprocess.run(cmd)
         assert result.returncode == 0
 
         print("############# 04_detect_aruco ###########")
         script_path = script_dir.joinpath("04_detect_aruco.py")
         assert script_path.is_file()
-        camera_intrinsics = calibration_dir.joinpath('gopro_intrinsics_gopro13sn7674.json')
-        aruco_config = calibration_dir.joinpath('aruco_config.yaml')
-        assert camera_intrinsics.is_file()
-        assert aruco_config.is_file()
 
         cmd = [
             'python', str(script_path),
             '--input_dir', str(demo_dir),
-            '--camera_intrinsics', str(camera_intrinsics),
-            '--aruco_yaml', str(aruco_config)
+            '--camera_intrinsics', str(camera_intrinsics_path),
+            '--aruco_yaml', str(aruco_config_path)
         ]
         result = subprocess.run(cmd)
         assert result.returncode == 0
