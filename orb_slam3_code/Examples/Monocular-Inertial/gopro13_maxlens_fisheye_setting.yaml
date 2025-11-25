@@ -5,10 +5,6 @@
 #--------------------------------------------------------------------------------------------
 Camera.type: "KannalaBrandt8"
 # Camera calibration and distortion parameters (OpenICC https://github.com/urbste/OpenImuCameraCalibrator) 
-# Camera.fx: 188.60460651 # 190.97847715128717
-# Camera.fy: 188.60460651 # 190.9733070521226
-# Camera.cx: 320.57432535 # 254.93170605935475
-# Camera.cy: 239.40467006 # 256.8974428996504
 Camera.fx: 1183.8702332012 # 190.97847715128717
 Camera.fy: 1183.8702332012 # 190.9733070521226
 Camera.cx: 1921.8842796129 # 254.93170605935475

@@ -41,7 +41,7 @@ def runner(cmd, cwd, stdout_path, stderr_path, timeout, **kwargs):
 @click.option('-i', '--input_dir', required=True, help='Directory for demos folder')
 @click.option('-m', '--map_path', default=None, help='ORB_SLAM3 *.osa map atlas file')
 @click.option('--orb_slam3_dir', default=None, help='Path to ORB_SLAM3 directory (default: ../orb_slam3_code)')
-@click.option('--setting_file', default=None, help='Path to setting YAML file (default: gopro13_maxlens_fisheye_setting.yaml)')
+@click.option('--setting_file', default=None, help='Path to setting YAML file (default: gopro13SN7674_maxlens_fisheye_setting_960x840.yaml)')
 @click.option('-n', '--num_workers', type=int, default=None)
 @click.option('-ml', '--max_lost_frames', type=int, default=60)
 @click.option('-tm', '--timeout_multiple', type=float, default=16, help='timeout_multiple * duration = timeout')
@@ -72,7 +72,7 @@ def main(input_dir, map_path, orb_slam3_dir, setting_file, num_workers, max_lost
     vocabulary_path = orb_slam3_dir.joinpath('Vocabulary', 'ORBvoc.txt')
     
     if setting_file is None:
-        setting_file = orb_slam3_dir.joinpath('Examples', 'Monocular-Inertial', 'gopro13_maxlens_fisheye_setting_960x840.yaml')
+        setting_file = orb_slam3_dir.joinpath('Examples', 'Monocular-Inertial', 'gopro13SN7674_maxlens_fisheye_setting_960x840.yaml')
     else:
         setting_file = pathlib.Path(os.path.expanduser(setting_file)).absolute()
     

@@ -124,8 +124,7 @@ int main(int argc, char **argv) {
   std::string save_map;
   app.add_option("--save_map", save_map);
 
-//bool enable_gui = false;
-  bool enable_gui = true;
+  bool enable_gui = false;
   app.add_flag("-g,--enable_gui", enable_gui);
 
   int num_threads = 4;
